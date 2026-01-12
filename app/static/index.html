@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polymarket Copy Trade Bot</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/test-btn.css">
+    <link rel="stylesheet" href="/static/scanning.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <span class="logo">🦅</span>
+            <h1>Polymarket<span class="accent">CopyTrade</span></h1>
+        </div>
+        <div class="header-right">
+            <div id="scan-badge" class="scan-badge"></div>
+            <button class="btn-test" onclick="simulateTrade()">⚡ TEST ET</button>
+            <div class="mode-badge paper" id="mode-badge">📝 PAPER MODE</div>
+            <div class="connection-status" id="connection-status">
+                <span class="status-dot"></span>
+                <span>Bağlanıyor...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Stats Row -->
+        <section class="stats-row">
+            <div class="stat-card balance">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <div class="stat-label">Bakiye</div>
+                    <div class="stat-value" id="balance">$1,000.00</div>
+                </div>
+            </div>
+            <div class="stat-card pnl">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <div class="stat-label">Kar/Zarar</div>
+                    <div class="stat-value" id="pnl">$0.00</div>
+                </div>
+            </div>
+            <div class="stat-card winrate">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-content">
+                    <div class="stat-label">Win Rate</div>
+                    <div class="stat-value" id="winrate">0%</div>
+                </div>
+            </div>
+            <div class="stat-card trades">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <div class="stat-label">İşlemler</div>
+                    <div class="stat-value" id="trade-count">0 / 0</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Left: Whale Leaderboard -->
+            <section class="panel whale-panel">
+                <div class="panel-header">
+                    <h2>🐋 Whale Leaderboard</h2>
+                    <button class="btn-refresh" onclick="refreshWhales()" title="Yenile">🔄</button>
+                </div>
+                <div class="whale-stats">
+                    <span class="heat-badge hot">🟢 <span id="hot-count">0</span></span>
+                    <span class="heat-badge warm">🟡 <span id="warm-count">0</span></span>
+                    <span class="heat-badge cold">🔴 <span id="cold-count">0</span></span>
+                </div>
+                <div class="whale-list" id="whale-list">
+                    <div class="loading">Yükleniyor...</div>
+                </div>
+            </section>
+
+            <!-- Center: Live Activity -->
+            <section class="panel activity-panel">
+                <div class="panel-header">
+                    <h2>⚡ Canlı Aktivite</h2>
+                </div>
+
+                <!-- Open Positions -->
+                <div class="sub-section">
+                    <h3>Açık Pozisyonlar</h3>
+                    <div class="positions-list" id="open-positions">
+                        <div class="empty-state">Açık pozisyon yok</div>
+                    </div>
+                </div>
+
+                <!-- Recent Trades -->
+                <div class="sub-section">
+                    <h3>Son Kopyalamalar</h3>
+                    <div class="trades-list" id="recent-trades">
+                        <div class="empty-state">Henüz işlem yok</div>
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="sub-section">
+                    <h3>📋 Log</h3>
+                    <div class="log-container" id="activity-log">
+                        <div class="log-entry info">Bot başlatıldı...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right: Markets by Category -->
+            <section class="panel markets-panel">
+                <div class="panel-header">
+                    <h2>📊 Marketler</h2>
+                </div>
+                <div class="category-tabs">
+                    <button class="cat-tab active" data-category="all">Tümü</button>
+                    <button class="cat-tab" data-category="politics">🏛️ Politika</button>
+                    <button class="cat-tab" data-category="crypto">₿ Kripto</button>
+                    <button class="cat-tab" data-category="sports">⚽ Spor</button>
+                    <button class="cat-tab" data-category="other">📦 Diğer</button>
+                </div>
+                <div class="markets-list" id="markets-list">
+                    <div class="loading">Yükleniyor...</div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Bottom: Performance Chart -->
+        <section class="panel chart-panel">
+            <div class="panel-header">
+                <h2>📈 Performans</h2>
+                <div class="chart-controls">
+                    <button class="btn-reset" onclick="resetTrading()">🔄 Sıfırla</button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="performance-chart"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <span>Polymarket Copy Trade Bot v1.0</span>
+        <span>•</span>
+        <span id="last-update">Son güncelleme: -</span>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>
