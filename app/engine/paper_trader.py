@@ -28,22 +28,60 @@ class PaperTrader:
         
         # Initialize balance
         self._initial_balance = initial_balance or self.settings.paper_initial_balance
-        self._balance = self._initial_balance
+        
+        # Try to load last balance from database (RESTART RECOVERY)
+        saved_balance = get_last_balance(is_paper=True)
+        if saved_balance is not None:
+            self._balance = saved_balance
+            logger.info(f"💾 Restored balance from database: ${saved_balance:,.2f}")
+        else:
+            self._balance = self._initial_balance
         
         # Trading state
         self._positions: Dict[str, Trade] = {}  # trade_id -> Trade
         self._trade_history: List[Trade] = []
         self._stats = TradingStats()
         
+        # Load open positions from database (RESTART RECOVERY)
+        self._load_open_positions_from_db()
+        
         # Balance history for charting
         self._balance_history: List[Dict] = [{
             "timestamp": datetime.utcnow().isoformat(),
             "balance": self._balance,
-            "pnl": 0,
-            "trade_count": 0
+            "pnl": self.pnl,
+            "trade_count": len(self._positions)
         }]
         
-        logger.info(f"Paper trader initialized with ${self._initial_balance:,.2f}")
+        logger.info(f"Paper trader initialized with ${self._balance:,.2f} ({len(self._positions)} open positions)")
+    
+    def _load_open_positions_from_db(self) -> None:
+        """Load open positions from database on startup"""
+        try:
+            open_trades = get_open_trades(is_paper=True)
+            for t in open_trades:
+                trade = Trade(
+                    id=t["id"],
+                    is_paper=True,
+                    whale_address=t["whale_address"],
+                    whale_name=None,
+                    market_id=t["market_id"],
+                    market_question=t["market_question"],
+                    category=t["category"],
+                    side=TradeSide(t["side"]),
+                    amount=t["amount"],
+                    entry_price=t["entry_price"],
+                    whale_score_at_entry=t.get("whale_score_at_entry"),
+                    opened_at=t.get("opened_at", datetime.utcnow())
+                )
+                self._positions[trade.id] = trade
+                self._stats.total_trades += 1
+                self._stats.open_trades += 1
+            
+            if open_trades:
+                logger.info(f"💾 Restored {len(open_trades)} open positions from database")
+        except Exception as e:
+            logger.warning(f"Could not load positions from database: {e}")
     
     @property
     def balance(self) -> float:
