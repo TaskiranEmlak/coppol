@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     polygon_rpc_url: str = Field(default="https://polygon-rpc.com/")
     
     # Bot Settings
-    refresh_interval: int = Field(default=30)
+    refresh_interval: int = Field(default=10, description="Seconds between whale scans")
     max_whales: int = Field(default=20)
     min_whale_score: float = Field(default=50.0)
     max_trade_percent: float = Field(default=50.0)

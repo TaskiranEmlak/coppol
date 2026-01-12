@@ -87,6 +87,10 @@ class PaperTrader:
         """
         Execute a paper trade based on signal and decision.
         
+        REALISTIC SIMULATION:
+        - Adds slippage (0.5%-3%) to simulate market impact
+        - Rejects trades with >10% slippage (too late)
+        
         Args:
             signal: The trade signal
             decision: The copy decision with amount
@@ -94,6 +98,8 @@ class PaperTrader:
         Returns:
             Trade object if executed, None if failed
         """
+        import random
+        
         if not decision.should_copy:
             logger.debug(f"Trade not copied: {decision.reason}")
             return None
@@ -105,7 +111,33 @@ class PaperTrader:
             logger.warning(f"Insufficient balance: {amount} > {self._balance}")
             return None
         
-        # Create trade
+        # REALISTIC SLIPPAGE SIMULATION
+        # Whale entered at signal.price, but we're late (API delay)
+        # Simulating 0.5% - 3% slippage based on amount and delay
+        base_slippage = random.uniform(0.005, 0.03)  # 0.5% to 3%
+        
+        # Larger amounts = more slippage
+        size_impact = min(amount / 100, 0.02)  # Up to 2% extra for big orders
+        
+        total_slippage = base_slippage + size_impact
+        
+        # Apply slippage in unfavorable direction
+        if signal.side == TradeSide.YES:
+            # Buying YES = price goes up (worse for us)
+            realistic_price = signal.price * (1 + total_slippage)
+        else:
+            # Buying NO = price goes down (worse for us)  
+            realistic_price = signal.price * (1 - total_slippage)
+        
+        # Reject if slippage too high (>10% = missed opportunity)
+        if abs(realistic_price - signal.price) / max(signal.price, 0.01) > 0.10:
+            logger.warning(f"⚠️ REJECTED: Slippage too high ({total_slippage*100:.1f}%)")
+            return None
+        
+        # Cap price at valid range
+        realistic_price = max(0.01, min(0.99, realistic_price))
+        
+        # Create trade with REALISTIC price
         trade = Trade(
             id=str(uuid4()),
             is_paper=True,
@@ -116,7 +148,7 @@ class PaperTrader:
             category=signal.category,
             side=signal.side,
             amount=amount,
-            entry_price=signal.price,
+            entry_price=realistic_price,  # SLIPPAGE APPLIED
             whale_score_at_entry=signal.whale_score,
             consensus_count=decision.consensus_count,
             decision_reason=decision.reason,
@@ -131,10 +163,11 @@ class PaperTrader:
         self._stats.total_trades += 1
         self._stats.open_trades += 1
         
+        slippage_pct = (realistic_price - signal.price) / max(signal.price, 0.01) * 100
         logger.info(
             f"📝 PAPER TRADE: {trade.side.value} on {trade.market_id[:20]}... "
-            f"| Amount: ${amount:.2f} | Price: {trade.entry_price:.2f} "
-            f"| Whale: {trade.whale_name or trade.whale_address[:10]}..."
+            f"| Amount: ${amount:.2f} | Whale: {signal.price:.2f} → Real: {realistic_price:.2f} "
+            f"(Slippage: {slippage_pct:+.1f}%) | {trade.whale_name or trade.whale_address[:10]}"
         )
         
         self._record_balance()
