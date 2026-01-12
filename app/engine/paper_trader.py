@@ -3,6 +3,7 @@ Paper Trading Engine
 
 Simulates trading with virtual money.
 Tracks performance without risking real funds.
+Now with DATABASE PERSISTENCE - trades survive restarts!
 """
 from typing import List, Optional, Dict
 from datetime import datetime
@@ -11,6 +12,7 @@ import logging
 
 from app.models.trade import Trade, TradeSignal, CopyDecision, TradingStats, TradeSide, TradeStatus
 from app.config import get_settings
+from app.database import save_trade, update_trade, get_open_trades, get_last_balance, save_balance
 
 logger = logging.getLogger(__name__)
 
@@ -169,6 +171,28 @@ class PaperTrader:
             f"| Amount: ${amount:.2f} | Whale: {signal.price:.2f} → Real: {realistic_price:.2f} "
             f"(Slippage: {slippage_pct:+.1f}%) | {trade.whale_name or trade.whale_address[:10]}"
         )
+        
+        # SAVE TO DATABASE for persistence
+        try:
+            save_trade({
+                "id": trade.id,
+                "is_paper": True,
+                "whale_address": trade.whale_address,
+                "market_id": trade.market_id,
+                "market_question": trade.market_question,
+                "category": trade.category,
+                "side": trade.side.value,
+                "amount": trade.amount,
+                "entry_price": trade.entry_price,
+                "whale_score_at_entry": trade.whale_score_at_entry,
+                "consensus_count": trade.consensus_count,
+                "decision_reason": trade.decision_reason,
+                "opened_at": trade.opened_at,
+                "status": "OPEN"
+            })
+            logger.debug(f"💾 Trade saved to database: {trade.id[:8]}")
+        except Exception as e:
+            logger.warning(f"Could not save trade to DB: {e}")
         
         self._record_balance()
         

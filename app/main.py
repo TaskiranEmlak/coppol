@@ -256,11 +256,14 @@ async def get_trades(limit: int = 20):
         "open_positions": [
             {
                 "id": t.id[:8],
-                "market": t.market_question or t.market_id[:30],
+                "market": t.market_question or t.market_id,  # Full question now
+                "market_short": (t.market_question or t.market_id)[:50] + "..." if len(t.market_question or t.market_id) > 50 else (t.market_question or t.market_id),
                 "side": t.side.value,
                 "amount": t.amount,
                 "entry_price": t.entry_price,
-                "whale": t.whale_name or t.whale_address[:10]
+                "whale": t.whale_name or t.whale_address[:10],
+                "opened_at": t.opened_at.strftime("%Y-%m-%d %H:%M") if t.opened_at else "N/A",
+                "category": t.category or "unknown"
             }
             for t in paper_trader.open_positions
         ],

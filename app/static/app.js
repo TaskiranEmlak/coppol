@@ -224,10 +224,16 @@ function renderOpenPositions(positions) {
     }
 
     container.innerHTML = positions.map(pos => `
-        <div class="position-item">
-            <span class="position-side ${pos.side}">${pos.side}</span>
-            <span class="position-market">${pos.market.substring(0, 30)}...</span>
-            <span class="position-amount">$${pos.amount.toFixed(2)}</span>
+        <div class="position-item" title="${pos.market}">
+            <div class="position-header">
+                <span class="position-side ${pos.side}">${pos.side}</span>
+                <span class="position-amount">$${pos.amount.toFixed(2)}</span>
+            </div>
+            <div class="position-market">${pos.market_short || pos.market}</div>
+            <div class="position-meta">
+                <span>🐋 ${pos.whale}</span>
+                <span>📅 ${pos.opened_at}</span>
+            </div>
         </div>
     `).join('');
 }

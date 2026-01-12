@@ -149,3 +149,110 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+# ==================== Helper Functions ====================
+
+def save_trade(trade_data: dict) -> None:
+    """Save a trade to database"""
+    db = SessionLocal()
+    try:
+        trade = TradeDB(
+            trade_id=trade_data.get("id"),
+            is_paper=trade_data.get("is_paper", True),
+            whale_address=trade_data.get("whale_address"),
+            market_id=trade_data.get("market_id"),
+            market_question=trade_data.get("market_question"),
+            category=trade_data.get("category"),
+            side=TradeSide(trade_data.get("side", "YES")),
+            amount=trade_data.get("amount", 0),
+            entry_price=trade_data.get("entry_price", 0.5),
+            exit_price=trade_data.get("exit_price"),
+            status=TradeStatus(trade_data.get("status", "OPEN")),
+            profit=trade_data.get("profit"),
+            whale_score_at_entry=trade_data.get("whale_score_at_entry"),
+            consensus_count=trade_data.get("consensus_count", 1),
+            decision_reason=trade_data.get("decision_reason"),
+            opened_at=trade_data.get("opened_at", datetime.utcnow()),
+            closed_at=trade_data.get("closed_at")
+        )
+        db.add(trade)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
+
+
+def update_trade(trade_id: str, updates: dict) -> None:
+    """Update a trade in database"""
+    db = SessionLocal()
+    try:
+        trade = db.query(TradeDB).filter(TradeDB.trade_id == trade_id).first()
+        if trade:
+            for key, value in updates.items():
+                if hasattr(trade, key):
+                    setattr(trade, key, value)
+            db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
+
+
+def get_open_trades(is_paper: bool = True) -> list:
+    """Get all open trades"""
+    db = SessionLocal()
+    try:
+        trades = db.query(TradeDB).filter(
+            TradeDB.is_paper == is_paper,
+            TradeDB.status == TradeStatus.OPEN
+        ).all()
+        return [
+            {
+                "id": t.trade_id,
+                "whale_address": t.whale_address,
+                "market_id": t.market_id,
+                "market_question": t.market_question,
+                "category": t.category,
+                "side": t.side.value,
+                "amount": t.amount,
+                "entry_price": t.entry_price,
+                "whale_score_at_entry": t.whale_score_at_entry,
+                "opened_at": t.opened_at
+            }
+            for t in trades
+        ]
+    finally:
+        db.close()
+
+
+def get_last_balance(is_paper: bool = True) -> float:
+    """Get last recorded balance"""
+    db = SessionLocal()
+    try:
+        record = db.query(BalanceHistoryDB).filter(
+            BalanceHistoryDB.is_paper == is_paper
+        ).order_by(BalanceHistoryDB.id.desc()).first()
+        return record.balance if record else None
+    finally:
+        db.close()
+
+
+def save_balance(balance: float, pnl: float, trade_count: int, is_paper: bool = True) -> None:
+    """Save balance snapshot"""
+    db = SessionLocal()
+    try:
+        record = BalanceHistoryDB(
+            is_paper=is_paper,
+            balance=balance,
+            pnl=pnl,
+            trade_count=trade_count
+        )
+        db.add(record)
+        db.commit()
+    finally:
+        db.close()
+
